@@ -8,6 +8,7 @@
 <script src="https://cdn.jsdelivr.net/npm/@tensorflow/tfjs@4.12.0/dist/tf.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/@teachablemachine/image@0.8/dist/teachablemachine-image.min.js"></script>
 
+
 <style>
 :root{
  --atm: #d1ccc0;
@@ -322,7 +323,42 @@ document.addEventListener("paste", e => {
     const item = [...e.clipboardData.items].find(i => i.type.includes("image"));
     if (item) handleFile(item.getAsFile());
 });
+
+const dropZone = document.getElementById("dropZone");
+
+// Prevent browser opening the image
+["dragenter", "dragover", "dragleave", "drop"].forEach(eventName => {
+    dropZone.addEventListener(eventName, e => {
+        e.preventDefault();
+        e.stopPropagation();
+    });
+});
+
+// Visual feedback
+["dragenter", "dragover"].forEach(eventName => {
+    dropZone.addEventListener(eventName, () => {
+        dropZone.style.border = "2px dashed #00ff88";
+        dropZone.style.boxShadow = "0 0 15px #00ff88";
+    });
+});
+
+["dragleave", "drop"].forEach(eventName => {
+    dropZone.addEventListener(eventName, () => {
+        dropZone.style.border = "1px solid rgba(0,255,136,0.3)";
+        dropZone.style.boxShadow = "none";
+    });
+});
+
+// Handle dropped file
+dropZone.addEventListener("drop", e => {
+    const file = e.dataTransfer.files[0];
+    if (file && file.type.startsWith("image/")) {
+        handleFile(file);
+    }
+});
+
 </script>
+
 
 </body>
 </html>
