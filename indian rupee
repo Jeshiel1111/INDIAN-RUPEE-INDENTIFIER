@@ -1,0 +1,328 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>RUPEE-BOT ARCADE ATM</title>
+
+<script src="https://cdn.jsdelivr.net/npm/@tensorflow/tfjs@4.12.0/dist/tf.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/@teachablemachine/image@0.8/dist/teachablemachine-image.min.js"></script>
+
+<style>
+:root{
+ --atm: #d1ccc0;
+ --screen: #0a1612;
+ --text: #00ff88;
+ --accent: #ff00ff;
+ --bg: #050505;
+}
+
+body {
+ margin: 0;
+ height: 100vh;
+ font-family: 'Courier New', monospace;
+ display: flex;
+ flex-direction: column;
+ justify-content: center;
+ align-items: center;
+ background: radial-gradient(circle at center, #2b1055 0%, #080014 100%);
+ overflow: hidden;
+ color: white;
+}
+
+/* Retro Background */
+.sun {
+ position: absolute;
+ bottom: 40%;
+ width: 400px;
+ height: 400px;
+ border-radius: 50%;
+ background: linear-gradient(#ff44cc, #ff9900);
+ opacity: 0.2;
+ filter: blur(4px);
+ z-index: -1;
+}
+
+.grid {
+ position: absolute;
+ bottom: -30%;
+ width: 200%;
+ height: 60%;
+ background: 
+  repeating-linear-gradient(to right, rgba(92, 31, 160, 0.2) 0 2px, transparent 50px),
+  repeating-linear-gradient(to top, rgba(92, 31, 160, 0.2) 0 2px, transparent 50px);
+ transform: perspective(500px) rotateX(60deg);
+ animation: scroll 20s linear infinite;
+ z-index: -1;
+}
+
+@keyframes scroll { from {background-position: 0 0;} to {background-position: 0 50px;} }
+
+.header {
+ font-size: 2.2rem;
+ letter-spacing: 8px;
+ margin-bottom: 20px;
+ text-shadow: 0 0 15px var(--accent);
+ font-weight: bold;
+}
+
+/* ATM Body */
+.atm {
+ background: var(--atm);
+ width: 380px;
+ padding: 25px;
+ border-radius: 20px;
+ box-shadow: 15px 15px 0 rgba(0,0,0,0.3), 0 50px 100px rgba(0,0,0,0.5);
+ transition: transform 0.1s ease-out;
+ position: relative;
+}
+
+/* SCREEN */
+.screen {
+ background: var(--screen);
+ color: var(--text);
+ padding: 15px;
+ border: 4px solid #222;
+ border-radius: 10px;
+ position: relative;
+ overflow: hidden;
+ box-shadow: inset 0 0 20px #000;
+}
+
+.scanner {
+ height: 160px;
+ border: 1px solid rgba(0,255,136,0.3);
+ background: #000;
+ display: flex;
+ align-items: center;
+ justify-content: center;
+ position: relative;
+ margin-bottom: 10px;
+}
+
+#preview { max-width: 100%; max-height: 100%; display: none; z-index: 2; }
+
+/* Scanning Line Animation */
+.scan-line {
+ position: absolute;
+ width: 100%;
+ height: 2px;
+ background: var(--text);
+ box-shadow: 0 0 10px var(--text);
+ top: 0;
+ z-index: 3;
+ display: none;
+ animation: scanning 2s linear infinite;
+}
+
+@keyframes scanning { 
+ 0% { top: 0; } 
+ 50% { top: 100%; } 
+ 100% { top: 0; } 
+}
+
+.placeholder { opacity: 0.6; font-size: 11px; text-align: center; }
+
+#result { 
+ font-size: 16px; 
+ height: 20px; 
+ text-transform: uppercase; 
+ border-top: 1px solid #1a3a2e;
+ padding-top: 8px;
+}
+
+/* RECEIPT SYSTEM */
+.slot {
+ height: 10px;
+ background: #111;
+ border-radius: 5px;
+ margin: 20px auto 0;
+ width: 80%;
+}
+
+.receipt-wrap {
+ width: 220px;
+ height: 0;
+ overflow: hidden;
+ transition: 0.8s ease-in-out;
+ margin: 0 auto;
+}
+
+.receipt {
+ background: #fff;
+ color: #000;
+ padding: 15px;
+ font-size: 11px;
+ transform: translateY(-100%);
+ transition: 1s cubic-bezier(0.4, 0, 0.2, 1);
+ box-shadow: 0 5px 15px rgba(0,0,0,0.2);
+ clip-path: polygon(0 0, 100% 0, 100% 97%, 95% 100%, 90% 97%, 85% 100%, 80% 97%, 75% 100%, 70% 97%, 65% 100%, 60% 97%, 55% 100%, 50% 97%, 45% 100%, 40% 97%, 35% 100%, 30% 97%, 25% 100%, 20% 97%, 15% 100%, 10% 97%, 5% 100%, 0 97%);
+}
+
+.receipt-wrap.show { height: 200px; }
+.receipt.print { transform: translateY(0); }
+.receipt.fall { animation: fallAway 1.5s forwards; }
+
+@keyframes fallAway {
+ to { transform: translateY(400px) rotate(15deg); opacity: 0; }
+}
+
+/* BUTTONS */
+.controls { margin-top: 20px; text-align: center; }
+.btn-label {
+ background: #333;
+ color: #fff;
+ padding: 10px 25px;
+ border-radius: 5px;
+ cursor: pointer;
+ font-size: 12px;
+ border: 2px solid #444;
+ transition: 0.3s;
+}
+.btn-label:hover { background: var(--accent); border-color: #fff; }
+
+/* FOOTER INFO */
+.info-text {
+ margin-top: 30px;
+ font-size: 0.75rem;
+ color: rgba(255,255,255,0.5);
+ letter-spacing: 1px;
+ text-align: center;
+ line-height: 1.5;
+}
+
+#trash {
+ position: absolute;
+ right: -60px;
+ bottom: 10px;
+ width: 50px;
+ height: 70px;
+ background: #444;
+ border-radius: 5px;
+ opacity: 0.8;
+}
+</style>
+</head>
+<body>
+
+<div class="sun"></div>
+<div class="grid"></div>
+
+<div class="header">RUPEE-BOT 9000</div>
+
+<div class="atm" id="atm">
+ <div class="screen">
+  <div class="scanner" id="dropZone">
+   <div class="scan-line" id="scanLine"></div>
+   <span class="placeholder" id="ph">DRAG IMAGE HERE OR PASTE</span>
+   <img id="preview">
+  </div>
+  <div id="result">SYSTEM ONLINE</div>
+ </div>
+
+ <div class="slot"></div>
+ <div class="receipt-wrap" id="rWrap">
+  <div class="receipt" id="receipt"></div>
+ </div>
+
+ <div class="controls">
+  <label class="btn-label">
+   INSERT CURRENCY
+   <input type="file" accept="image/*" style="display:none" onchange="handleFile(event.target.files[0])">
+  </label>
+ </div>
+</div>
+
+<div class="info-text">
+ <strong>COMPATIBILITY MODE:</strong><br>
+ Supports: ₹10, ₹20, ₹50, ₹100, ₹200, ₹500, ₹2000 notes only.
+</div>
+
+<script>
+const MODEL_URL = "https://teachablemachine.withgoogle.com/models/IdtWbCYHw/";
+let model;
+
+// Load Model immediately
+(async () => {
+    try {
+        model = await tmImage.load(MODEL_URL + "model.json", MODEL_URL + "metadata.json");
+        document.getElementById('result').innerText = "READY FOR DEPOSIT";
+    } catch (e) {
+        document.getElementById('result').innerText = "CORE LOAD ERROR";
+    }
+})();
+
+// 3D Tilt Effect
+document.addEventListener("mousemove", e => {
+    const atm = document.getElementById("atm");
+    const x = (e.clientX / window.innerWidth - 0.5) * 15;
+    const y = (e.clientY / window.innerHeight - 0.5) * -15;
+    atm.style.transform = `perspective(1000px) rotateY(${x}deg) rotateX(${y}deg)`;
+});
+
+async function handleFile(file) {
+    if (!file || !model) return;
+
+    const img = document.getElementById("preview");
+    const ph = document.getElementById("ph");
+    const res = document.getElementById("result");
+    const scanLine = document.getElementById("scanLine");
+    const receipt = document.getElementById("receipt");
+    const wrap = document.getElementById("rWrap");
+
+    // Reset UI
+    receipt.classList.remove("print", "fall");
+    wrap.classList.remove("show");
+    
+    // Show Image
+    ph.style.display = "none";
+    img.style.display = "block";
+    img.src = URL.createObjectURL(file);
+
+    res.innerText = "ANALYZING...";
+    scanLine.style.display = "block";
+
+    img.onload = async () => {
+        const prediction = await model.predict(img);
+        const best = prediction.reduce((a, b) => a.probability > b.probability ? a : b);
+        
+        setTimeout(() => {
+            scanLine.style.display = "none";
+            res.innerText = `IDENTIFIED: ₹${best.className}`;
+            
+            // Print Receipt
+            receipt.innerHTML = `
+                <b>RUPEE-BOT 9000</b><br>
+                -------------------<br>
+                BANK OF ARCADE<br><br>
+                DENOM: ₹${best.className}<br>
+                CONFID: ${(best.probability * 100).toFixed(2)}%<br><br>
+                STATUS: VALIDATED<br>
+                -------------------<br>
+                ${new Date().toLocaleTimeString()}
+            `;
+            
+            wrap.classList.add("show");
+            setTimeout(() => receipt.classList.add("print"), 100);
+            
+            // Auto-discard receipt after 5s
+            setTimeout(() => {
+                receipt.classList.add("fall");
+                setTimeout(() => {
+                    wrap.classList.remove("show");
+                }, 1000);
+            }, 5000);
+
+        }, 1500);
+    };
+}
+
+// Drag & Paste support
+document.addEventListener("paste", e => {
+    const item = [...e.clipboardData.items].find(i => i.type.includes("image"));
+    if (item) handleFile(item.getAsFile());
+});
+</script>
+
+</body>
+</html>
